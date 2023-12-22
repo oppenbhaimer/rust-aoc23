@@ -41,53 +41,53 @@ fn main() -> io::Result<()> {
     for y in 0..n {
         for x in 0..m {
             for dir in [Down, Up, Right, Left] {
-                for s in [1, 2, 3] {
+                for s in 4..=10 {
                     let node = Node{pos: (x, y), dir: dir.clone(), steps: s};
                     let mut nbd: Vec<(Node, i32)> = vec![];
 
                     match dir {
                         Down => {
-                            if y < n-1 && s != 3 {
+                            if y < n-1 && s != 10 {
                                 nbd.push((Node{pos: (x, y+1), dir: Down, steps:s+1}, grid[y+1][x]));
                             }
-                            if x < m-1 {
-                                nbd.push((Node{pos: (x+1, y), dir: Right, steps: 1}, grid[y][x+1]));
+                            if x < m-4 {
+                                nbd.push((Node{pos: (x+4, y), dir: Right, steps: 4}, grid[y][x+1]+grid[y][x+2]+grid[y][x+3]+grid[y][x+4]));
                             }
-                            if x > 0 {
-                                nbd.push((Node{pos: (x-1, y), dir: Left, steps: 1}, grid[y][x-1]));
+                            if x > 3 {
+                                nbd.push((Node{pos: (x-4, y), dir: Left, steps: 4}, grid[y][x-1]+grid[y][x-2]+grid[y][x-3]+grid[y][x-4]));
                             }
                         },
                         Up => {
-                            if y > 0 && s != 3 {
+                            if y > 0 && s != 10 {
                                 nbd.push((Node{pos: (x, y-1), dir: Up, steps: s+1}, grid[y-1][x]));
                             }
-                            if x < m-1 {
-                                nbd.push((Node{pos: (x+1, y), dir: Right, steps: 1}, grid[y][x+1]));
+                            if x < m-4 {
+                                nbd.push((Node{pos: (x+4, y), dir: Right, steps: 4}, grid[y][x+1]+grid[y][x+2]+grid[y][x+3]+grid[y][x+4]));
                             }
-                            if x > 0 {
-                                nbd.push((Node{pos: (x-1, y), dir: Left, steps: 1}, grid[y][x-1]));
+                            if x > 3 {
+                                nbd.push((Node{pos: (x-4, y), dir: Left, steps: 4}, grid[y][x-1]+grid[y][x-2]+grid[y][x-3]+grid[y][x-4]));
                             }
                         },
                         Right => {
-                            if x < m-1 && s != 3 {
+                            if x < m-1 && s != 10 {
                                 nbd.push((Node{pos: (x+1, y), dir: Right, steps: s+1}, grid[y][x+1]));
                             }
-                            if y > 0 {
-                                nbd.push((Node{pos: (x, y-1), dir: Up, steps: 1}, grid[y-1][x]));
+                            if y > 3 {
+                                nbd.push((Node{pos: (x, y-4), dir: Up, steps: 4}, grid[y-1][x]+grid[y-2][x]+grid[y-3][x]+grid[y-4][x]));
                             }
-                            if y < n-1 {
-                                nbd.push((Node{pos: (x, y+1), dir: Down, steps: 1}, grid[y+1][x]));
+                            if y < n-4 {
+                                nbd.push((Node{pos: (x, y+4), dir: Down, steps: 4}, grid[y+1][x]+grid[y+2][x]+grid[y+3][x]+grid[y+4][x]));
                             }
                         },
                         Left => {
-                            if x > 0 && s != 3 {
+                            if x > 0 && s != 10 {
                                 nbd.push((Node{pos: (x-1, y), dir: Left, steps: s+1}, grid[y][x-1]));
                             }
-                            if y > 0 {
-                                nbd.push((Node{pos: (x, y-1), dir: Up, steps: 1}, grid[y-1][x]));
+                            if y > 3 {
+                                nbd.push((Node{pos: (x, y-4), dir: Up, steps: 4}, grid[y-1][x]+grid[y-2][x]+grid[y-3][x]+grid[y-4][x]));
                             }
-                            if y < n-1 {
-                                nbd.push((Node{pos: (x, y+1), dir: Down, steps: 1}, grid[y+1][x]));
+                            if y < n-4 {
+                                nbd.push((Node{pos: (x, y+4), dir: Down, steps: 4}, grid[y+1][x]+grid[y+2][x]+grid[y+3][x]+grid[y+4][x]));
                             }
                         }
                     }
@@ -100,8 +100,8 @@ fn main() -> io::Result<()> {
 
     // start node
     g.insert(Node{pos: (0, 0), dir: Right, steps: 0}, vec![
-             (Node{pos: (0, 1), dir: Down, steps: 1}, grid[1][0]),
-             (Node{pos: (1, 0), dir: Right, steps: 1}, grid[0][1])
+             (Node{pos: (0, 4), dir: Down, steps: 4}, grid[1][0]+grid[2][0]+grid[3][0]+grid[4][0]),
+             (Node{pos: (4, 0), dir: Right, steps: 4}, grid[0][1]+grid[0][2]+grid[0][3]+grid[0][4])
             ]);
 
     // dijkstra on g
