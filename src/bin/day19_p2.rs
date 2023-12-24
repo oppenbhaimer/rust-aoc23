@@ -1,23 +1,15 @@
 use std::fs::File;
 use regex::Regex;
 use regex::Captures;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::io::{self, BufRead};
+
+type Vec4 = [i64; 4];
 
 enum Cmp {
     Gt,
     Lt,
     Unk
-}
-
-impl Cmp {
-    fn compare(&self, qty: i32, other: i32) -> bool {
-        match self {
-            Cmp::Gt => other > qty,
-            Cmp::Lt => other < qty,
-            Cmp::Unk => true
-        }
-    }
 }
 
 impl From<&str> for Cmp {
@@ -51,48 +43,66 @@ impl From<&str> for Category {
 struct Rule {
     cat: Category,
     cmp: Cmp,
-    val: i32,
+    val: i64,
     tgt: String
 }
 
 impl Rule {
-    fn accept(&self, p: &Part) -> bool {
-        if self.cat == Category::U {
-            return true;
+    fn split_vol(&self, s: Vec4, e: Vec4) -> (Option<(Vec4, Vec4)>, Option<(Vec4, Vec4)>) {
+        // (Yes, No)
+        let mut i1 = None;
+        let mut i2 = None;
+        let idx = match self.cat {
+            Category::X => 0,
+            Category::M => 1,
+            Category::A => 2,
+            Category::S => 3,
+            Category::U => 0
+        };
+
+        match self.cmp {
+            Cmp::Gt => {
+                if self.val >= e[idx] {
+                    i1 = None;
+                    i2 = Some((s, e));
+                }
+                else if self.val < s[idx] {
+                    i1 = Some((s, e));
+                    i2 = None;
+                }
+                else {
+                    let mut m = e;
+                    m[idx] = self.val;
+                    let mut m2 = s;
+                    m2[idx] = self.val+1;
+
+                    i1 = Some((m2, e));
+                    i2 = Some((s, m));
+                }
+            },
+            Cmp::Lt => {
+                if self.val > e[idx] {
+                    i1 = Some((s, e));
+                    i2 = None;
+                }
+                else if self.val <= s[idx] {
+                    i1 = None;
+                    i2 = Some((s, e));
+                }
+                else {
+                    let mut m = e;
+                    m[idx] = self.val-1;
+                    let mut m2 = s;
+                    m2[idx] = self.val;
+
+                    i1 = Some((s, m));
+                    i2 = Some((m2, e));
+                }
+            },
+            Cmp::Unk => {}
         }
-        for (cat, val) in p.values.iter() {
-            if *cat == self.cat && self.cmp.compare(self.val, *val) {
-                return true;
-            }
-        }
-        false
-    }
-}
-    
-struct Part {
-    values: Vec<(Category, i32)>
-}
 
-impl Part {
-    fn value(&self) -> i32 {
-        self.values.iter().fold(0, |acc, e| acc + e.1)
-    }
-}
-
-
-impl From<&str> for Part {
-    fn from(line: &str) -> Part {
-        let re_part : Regex = Regex::new(r"([xmas])=([0-9]+)").unwrap();
-
-        let n = line.len();
-        let values : Vec<&str> = line[1..n-1].split(",").collect();
-        let mut p = Part { values : vec![] };
-
-        for value in values {
-            let cap = re_part.captures(value).unwrap();
-            p.values.push((Category::from(&cap[1]), cap[2].parse::<i32>().unwrap()));
-        }
-        p
+        return (i1, i2);
     }
 }
 
@@ -104,13 +114,29 @@ struct Workflow {
 }
 
 impl Workflow {
-    fn process(&self, p: &Part) -> String {
+    fn split(&self, start: Vec4, end: Vec4) -> Vec<(String, (Vec4, Vec4))> {
+        let mut start = start;
+        let mut end = end;
+        let mut map = vec![];
         for rule in self.rules.iter() {
-            if rule.accept(p) {
-                return rule.tgt.clone();
+            let (i1, i2) = rule.split_vol(start, end);
+            match i1 {
+                Some(b) => {
+                    // println!("{}: ({}, {}, {}, {}), ({}, {}, {}, {})", rule.tgt, b.0[0], b.0[1], b.0[2], b.0[3], b.1[0], b.1[1], b.1[2], b.1[3]);
+                    map.push((rule.tgt.clone(), b));}
+                None => {}
+            }
+            match i2 {
+                Some((s, e)) => {
+                    start = s;
+                    end = e;
+                },
+                None => {break;}
             }
         }
-        return self.fallback.clone();
+        // println!("{}: ({}, {}, {}, {}), ({}, {}, {}, {})", self.fallback, start[0], start[1], start[2], start[3], end[0], end[1], end[2], end[3]);
+        map.push((self.fallback.clone(), (start, end)));
+        map
     }
 
 }
@@ -134,12 +160,40 @@ impl From<&str> for Workflow {
             wf.rules.push(Rule{
                 cat: Category::from(&rule[1]),
                 cmp: Cmp::from(&rule[2]),
-                val: rule[3].parse::<i32>().unwrap(),
+                val: rule[3].parse::<i64>().unwrap(),
                 tgt: rule[4].to_string()
             });
         }
         wf
     }
+}
+
+fn vol(s: Vec4, e: Vec4) -> i64 {
+    let mut prod = 1;
+    for i in 0..4 {
+        prod *= e[i]-s[i]+1;
+    }
+    prod
+}
+
+fn get_num_combs(start: Vec4, end: Vec4, wf: &Workflow, wfs: &BTreeMap<String, Workflow>) -> i64 {
+
+    let mut sum = 0;
+
+    let splits = wf.split(start, end);
+
+    for (tgt, (s, e)) in splits {
+        if tgt == "A" {
+            // println!("Accepting ({}, {}, {}, {}), ({}, {}, {}, {})", s[0], s[1], s[2], s[3], e[0], e[1], e[2], e[3]);
+            sum += vol(s, e);
+        }
+        else if tgt != "R" {
+            // println!("{}", tgt);
+            sum += get_num_combs(s, e, &wfs[&tgt], wfs);
+        }
+    }
+
+    sum
 }
 
 fn main() -> io::Result<()> {
@@ -148,7 +202,6 @@ fn main() -> io::Result<()> {
 
     let lines : Vec<String> = reader.lines().map(|x| x.unwrap()).collect();
     let mut workflows: BTreeMap<String, Workflow> = BTreeMap::new();
-    let mut ans : i32 = 0;
 
     let mut it = lines.iter();
     let mut l = it.next();
@@ -164,29 +217,9 @@ fn main() -> io::Result<()> {
         l = it.next();
     }
 
-    let mut parts: Vec<Part> = vec![];
-    let mut l = it.next();
-    while l != None {
-        let line = l.unwrap();
-        let part = Part::from(line.as_str());
-        parts.push(part);
-        l = it.next();
-    }
+    // recurse on parts
 
-    for part in parts {
-        let mut curr_wf = "in".to_string();
-        while curr_wf != "A" && curr_wf != "R" {
-            curr_wf = workflows[&curr_wf].process(&part);
-            print!("{} -> ", curr_wf);
-        }
-        println!("");
-
-        if curr_wf == "A" {
-            ans += part.value();
-        }
-    }
-
-    println!("{}", ans);
+    println!("{}", get_num_combs([1,1,1,1], [4000,4000,4000,4000], &workflows["in"], &workflows));
 
     Ok(())
 }
