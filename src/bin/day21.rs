@@ -40,21 +40,6 @@ fn get_reachable(grid: &Vec<Vec<char>>, start: (i32, i32), steps: i32) -> i64 {
         }
     }
 
-    /*
-    for row in &dists {
-        for col in row {
-            if col.is_some() {
-                print!("{}", col.unwrap());
-            }
-            else {
-                print!("#");
-            }
-        }
-        println!("");
-    }
-    */
-
-
     // count outward in L1 circles
     //    #
     //   # #
@@ -94,30 +79,20 @@ fn main() -> io::Result<()> {
     let grid: Vec<Vec<char>> = reader.lines().map(|x| x.unwrap().chars().collect()).collect();
 
     let mut ans: i64 = 0;
-    // part 2
-    // let d = 26501365 / 131;
-    // ans += get_reachable(&grid, (0, 65), 130);
-    // ans += get_reachable(&grid, (65, 0), 130);
-    // ans += get_reachable(&grid, (130, 65), 130);
-    // ans += get_reachable(&grid, (65, 130), 130);
-
-    // ans += (d-1)*get_reachable(&grid, (0, 0), 130+65);
-    // ans += (d-1)*get_reachable(&grid, (0, 130), 130+65);
-    // ans += (d-1)*get_reachable(&grid, (130, 0), 130+65);
-    // ans += (d-1)*get_reachable(&grid, (130, 130), 130+65);
-
-    // ans += d*get_reachable(&grid, (0, 0), 64);
-    // ans += d*get_reachable(&grid, (0, 130), 64);
-    // ans += d*get_reachable(&grid, (130, 0), 64);
-    // ans += d*get_reachable(&grid, (130, 130), 64);
-
-    // ans += (d*(d-1)*2 + 1) * get_reachable(&grid, (65,65), 130);
-    // garden parity change! ughhhh
 
     // part 1
-    ans = get_reachable(&grid, (131+65, 131+65), 130+65);
-
+    ans = get_reachable(&grid, (131*2+65, 131*2+65), 64);
     println!("{}", ans);
+    ans = get_reachable(&grid, (131*2+65, 131*2+65), 65);
+    println!("{}", ans);
+    ans = get_reachable(&grid, (131*2+65, 131*2+65), 131+65);
+    println!("{}", ans);
+    ans = get_reachable(&grid, (131*2+65, 131*2+65), 131*2+65);
+    println!("{}", ans);
+    ans = get_reachable(&grid, (131*2+65, 131*2+65), 131*3+65);
+    println!("{}", ans);
+
+    // fit a quadratic on these after this.
 
     Ok(())
 }
